@@ -51,7 +51,6 @@
 
 #include "dynctrl.h"
 
-//#include "uvcvideo.h"
 
 #define INPUT_PLUGIN_NAME "UVC webcam grabber"
 
@@ -272,6 +271,8 @@ int input_init(input_parameter *param, int id)
             DBG("case 18,19\n");
             if (strcmp(optarg, "RGBP") == 0) {
                 format = V4L2_PIX_FMT_RGB565;
+            } else if (strcmp(optarg, "RGB3") == 0) {
+                format = V4L2_PIX_FMT_RGB24;
             } else {
                 DBG("FOURCC %s not supported\n", optarg);
             }
@@ -310,18 +311,26 @@ int input_init(input_parameter *param, int id)
     /* display the parsed values */
     IPRINT("Using V4L2 device.: %s\n", dev);
     IPRINT("Desired Resolution: %i x %i\n", width, height);
-    IPRINT("Frames Per Second.: %i\n", fps);
+    if (fps == -1) {
+        IPRINT("Frames Per Second.: not limited\n");
+    } else {
+        IPRINT("Frames Per Second.: %i\n", fps);
+    }
+
     char *fmtString = NULL;
     switch (format) {
         case V4L2_PIX_FMT_MJPEG:
             fmtString = "JPEG";
             break;
-        #ifndef NI_LIBJPG
+        #ifndef NO_LIBJPG
             case V4L2_PIX_FMT_YUYV:
                 fmtString = "YUYV";
                 break;
             case V4L2_PIX_FMT_RGB565:
                 fmtString = "RGB565";
+                break;
+            case V4L2_PIX_FMT_RGB24:
+                fmtString = "RGB3";
                 break;
         #endif
         default:
@@ -509,7 +518,9 @@ void *cam_thread(void *arg)
          * Linux-UVC compatible devices.
          */
         #ifndef NO_LIBJPEG
-        if ((pcontext->videoIn->formatIn == V4L2_PIX_FMT_YUYV) || (pcontext->videoIn->formatIn == V4L2_PIX_FMT_RGB565)) {
+        if ((pcontext->videoIn->formatIn == V4L2_PIX_FMT_YUYV) ||
+            (pcontext->videoIn->formatIn == V4L2_PIX_FMT_RGB565) ||
+            (pcontext->videoIn->formatIn == V4L2_PIX_FMT_RGB24)) {
             DBG("compressing frame from input: %d\n", (int)pcontext->id);
             pglobal->in[pcontext->id].size = compress_image_to_jpeg(pcontext->videoIn, pglobal->in[pcontext->id].buf, pcontext->videoIn->framesizeIn, gquality);
         } else {

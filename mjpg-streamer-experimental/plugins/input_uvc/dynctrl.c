@@ -33,57 +33,11 @@
 #include "dynctrl.h"
 
 /* some Logitech webcams have pan/tilt/focus controls */
-#define LENGTH_OF_XU_CTR (6)
 #define LENGTH_OF_XU_MAP (10)
 
-static struct uvc_xu_control_info xu_ctrls[] = {
-    {
-        .entity   = UVC_GUID_LOGITECH_MOTOR_CONTROL,
-        .selector = XU_MOTORCONTROL_PANTILT_RELATIVE,
-        .index    = 0,
-        .size     = 4,
-        .flags    = UVC_CONTROL_SET_CUR | UVC_CONTROL_GET_MIN | UVC_CONTROL_GET_MAX | UVC_CONTROL_GET_DEF | UVC_CONTROL_AUTO_UPDATE
-    },
-    {
-        .entity   = UVC_GUID_LOGITECH_MOTOR_CONTROL,
-        .selector = XU_MOTORCONTROL_PANTILT_RESET,
-        .index    = 1,
-        .size     = 1,
-        .flags    = UVC_CONTROL_SET_CUR | UVC_CONTROL_GET_MIN | UVC_CONTROL_GET_MAX | UVC_CONTROL_GET_RES | UVC_CONTROL_GET_DEF | UVC_CONTROL_AUTO_UPDATE
-    },
-    {
-        .entity   = UVC_GUID_LOGITECH_MOTOR_CONTROL,
-        .selector = XU_MOTORCONTROL_FOCUS,
-        .index    = 2,
-        .size     = 6,
-        .flags    = UVC_CONTROL_SET_CUR | UVC_CONTROL_GET_CUR | UVC_CONTROL_GET_MIN | UVC_CONTROL_GET_MAX | UVC_CONTROL_GET_DEF | UVC_CONTROL_AUTO_UPDATE
-    },
-    {
-        .entity   = UVC_GUID_LOGITECH_VIDEO_PIPE,
-        .selector = XU_COLOR_PROCESSING_DISABLE,
-        .index    = 4,
-        .size     = 1,
-        .flags    = UVC_CONTROL_SET_CUR | UVC_CONTROL_GET_CUR | UVC_CONTROL_GET_MIN | UVC_CONTROL_GET_MAX | UVC_CONTROL_GET_RES | UVC_CONTROL_GET_DEF | UVC_CONTROL_AUTO_UPDATE
-    },
-    {
-        .entity   = UVC_GUID_LOGITECH_VIDEO_PIPE,
-        .selector = XU_RAW_DATA_BITS_PER_PIXEL,
-        .index    = 7,
-        .size     = 1,
-        .flags    = UVC_CONTROL_SET_CUR | UVC_CONTROL_GET_CUR | UVC_CONTROL_GET_MIN | UVC_CONTROL_GET_MAX | UVC_CONTROL_GET_RES | UVC_CONTROL_GET_DEF | UVC_CONTROL_AUTO_UPDATE
-    },
-    {
-        .entity   = UVC_GUID_LOGITECH_USER_HW_CONTROL,
-        .selector = XU_HW_CONTROL_LED1,
-        .index    = 0,
-        .size     = 3,
-        .flags    = UVC_CONTROL_SET_CUR | UVC_CONTROL_GET_CUR | UVC_CONTROL_GET_MIN | UVC_CONTROL_GET_MAX | UVC_CONTROL_GET_RES | UVC_CONTROL_GET_DEF | UVC_CONTROL_AUTO_UPDATE
-    },
-
-};
 
 /* mapping for Pan/Tilt/Focus */
-static struct uvc_xu_control_mapping xu_mappings[] = {
+struct uvc_xu_control_mapping xu_mappings[] = {
     {
         .id        = V4L2_CID_PAN_RELATIVE,
         .name      = "Pan (relative)",
@@ -125,17 +79,7 @@ static struct uvc_xu_control_mapping xu_mappings[] = {
         .data_type = UVC_CTRL_DATA_TYPE_UNSIGNED
     },
     {
-        .id        = V4L2_CID_PANTILT_RESET_LOGITECH,
-        .name      = "Pan/tilt Reset",
-        .entity    = UVC_GUID_LOGITECH_MOTOR_CONTROL,
-        .selector  = XU_MOTORCONTROL_PANTILT_RESET,
-        .size      = 8,
-        .offset    = 0,
-        .v4l2_type = V4L2_CTRL_TYPE_BUTTON,
-        .data_type = UVC_CTRL_DATA_TYPE_UNSIGNED
-    },
-    {
-        .id        = V4L2_CID_FOCUS_LOGITECH,
+        .id        = V4L2_CID_FOCUS,
         .name      = "Focus (absolute)",
         .entity    = UVC_GUID_LOGITECH_MOTOR_CONTROL,
         .selector  = XU_MOTORCONTROL_FOCUS,
@@ -145,7 +89,7 @@ static struct uvc_xu_control_mapping xu_mappings[] = {
         .data_type = UVC_CTRL_DATA_TYPE_UNSIGNED
     },
     {
-        .id        = V4L2_CID_LED1_MODE_LOGITECH,
+        .id        = V4L2_CID_LED1_MODE,
         .name      = "LED1 Mode",
         .entity    = UVC_GUID_LOGITECH_USER_HW_CONTROL,
         .selector  = XU_HW_CONTROL_LED1,
@@ -155,7 +99,7 @@ static struct uvc_xu_control_mapping xu_mappings[] = {
         .data_type = UVC_CTRL_DATA_TYPE_UNSIGNED
     },
     {
-        .id        = V4L2_CID_LED1_FREQUENCY_LOGITECH,
+        .id        = V4L2_CID_LED1_FREQUENCY,
         .name      = "LED1 Frequency",
         .entity    = UVC_GUID_LOGITECH_USER_HW_CONTROL,
         .selector  = XU_HW_CONTROL_LED1,
@@ -165,7 +109,7 @@ static struct uvc_xu_control_mapping xu_mappings[] = {
         .data_type = UVC_CTRL_DATA_TYPE_UNSIGNED
     },
     {
-        .id        = V4L2_CID_DISABLE_PROCESSING_LOGITECH,
+        .id        = V4L2_CID_DISABLE_PROCESSING,
         .name      = "Disable video processing",
         .entity    = UVC_GUID_LOGITECH_VIDEO_PIPE,
         .selector  = XU_COLOR_PROCESSING_DISABLE,
@@ -175,7 +119,7 @@ static struct uvc_xu_control_mapping xu_mappings[] = {
         .data_type = UVC_CTRL_DATA_TYPE_BOOLEAN
     },
     {
-        .id        = V4L2_CID_RAW_BITS_PER_PIXEL_LOGITECH,
+        .id        = V4L2_CID_RAW_BITS_PER_PIXEL,
         .name      = "Raw bits per pixel",
         .entity    = UVC_GUID_LOGITECH_VIDEO_PIPE,
         .selector  = XU_RAW_DATA_BITS_PER_PIXEL,
@@ -191,15 +135,6 @@ int initDynCtrls(int fd)
 {
     int i = 0;
     int err = 0;
-    /* try to add all controls listed above */
-    for(i = 0; i < LENGTH_OF_XU_CTR; i++) {
-        if((err = xioctl(fd, UVCIOC_CTRL_ADD, &xu_ctrls[i])) < 0) {
-            if(errno == EEXIST)
-                fprintf(stderr,"Control exists\n");
-            else if (errno != 0)
-                fprintf(stderr, "UVCIOC_CTRL_ADD - Error at %s: %s (%d)\n", xu_mappings[i].name, strerror(errno), errno);
-        }
-    }
 
     /* after adding the controls, add the mapping now */
     for(i = 0; i < LENGTH_OF_XU_MAP; i++) {

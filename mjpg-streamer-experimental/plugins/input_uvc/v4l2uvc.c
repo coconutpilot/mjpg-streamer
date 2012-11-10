@@ -188,9 +188,7 @@ int init_videoIn(struct vdIn *vd, char *device, int width,
         break;
     case V4L2_PIX_FMT_RGB565: // buffer allocation for non varies on frame size formats
     case V4L2_PIX_FMT_YUYV:
-        vd->framebuffer =
-            (unsigned char *) calloc(1, (size_t) vd->framesizeIn);
-        break;
+    case V4L2_PIX_FMT_RGB24:
         vd->framebuffer =
             (unsigned char *) calloc(1, (size_t) vd->framesizeIn);
         break;
@@ -290,6 +288,9 @@ static int init_v4l2(struct vdIn *vd)
                 goto fatal;
             } else if (vd->formatIn == V4L2_PIX_FMT_RGB565) {
                 fprintf(stderr, "The input device does not supports RGB565 format\n");
+                goto fatal;
+            } else if (vd->formatIn == V4L2_PIX_FMT_RGB24) {
+                fprintf(stderr, "The input device does not supports RGB3 format\n");
                 goto fatal;
             }
         } else {
@@ -535,6 +536,7 @@ int uvcGrab(struct vdIn *vd)
         break;
     case V4L2_PIX_FMT_RGB565:
     case V4L2_PIX_FMT_YUYV:
+    case V4L2_PIX_FMT_RGB24:
         if(vd->buf.bytesused > vd->framesizeIn)
             memcpy(vd->framebuffer, vd->mem[vd->buf.index], (size_t) vd->framesizeIn);
         else
