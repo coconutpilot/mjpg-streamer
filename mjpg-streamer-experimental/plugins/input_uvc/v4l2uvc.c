@@ -806,10 +806,6 @@ void control_readed(struct vdIn *vd, struct v4l2_queryctrl *ctrl, globals *pglob
                     pglobal->in[id].in_parameters[pglobal->in[id].parametercount].value = 1;
                     DBG("Setting the Tilt reset value to 2\n");
                     break;
-                case V4L2_CID_PANTILT_RESET_LOGITECH:
-                    pglobal->in[id].in_parameters[pglobal->in[id].parametercount].value = 3;
-                    DBG("Setting the PAN/TILT reset value to 3\n");
-                    break;
                 default:
                     DBG("control id: 0x%08x failed to get value (error %i)\n", ext_ctrl.id, ret);
             }
