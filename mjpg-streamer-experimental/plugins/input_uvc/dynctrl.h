@@ -26,7 +26,5 @@
 
 #include "v4l2uvc.h"
 
-
-
 int initDynCtrls(int fd);
 
