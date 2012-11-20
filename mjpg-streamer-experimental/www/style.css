@@ -190,3 +190,20 @@ img.x-flipped-mirrored-rotated-270 {
 	position: relative;
 	top: 5px;
 }
+
+.pt_btn {
+	margin: 0px !important;
+}
+
+.pt_btn_pushed {
+	border: 1px solid black;
+	-webkit-border-radius: 3px;
+	-moz-border-radius: 3px;
+	border-radius: 3px;
+}
+
+
+.pt_table {
+	margin-left: auto;
+	margin-right: auto;
+}

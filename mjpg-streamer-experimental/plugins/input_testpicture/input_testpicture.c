@@ -83,7 +83,7 @@ Description.: parse input parameters
 Input Value.: param contains the command line string and a pointer to globals
 Return Value: 0 if everything is ok
 ******************************************************************************/
-int input_init(input_parameter *param, int plugin_no)
+int input_init(input_parameter *param, int id)
 {
     int i;
 
@@ -95,6 +95,8 @@ int input_init(input_parameter *param, int plugin_no)
     }
 
     param->argv[0] = INPUT_PLUGIN_NAME;
+    param->global->in[id].name = malloc((strlen(INPUT_PLUGIN_NAME) + 1) * sizeof(char));
+    sprintf(param->global->in[id].name, INPUT_PLUGIN_NAME);
 
     /* show all parameters for DBG purposes */
     for(i = 0; i < param->argc; i++) {
@@ -166,6 +168,63 @@ int input_init(input_parameter *param, int plugin_no)
     IPRINT("delay.............: %i\n", delay);
     IPRINT("resolution........: %s\n", pics->resolution);
 
+    // add some dummy controls
+    pglobal->in[id].parametercount = 3;
+    pglobal->in[id].in_parameters = (control*)calloc(3, sizeof(control));
+
+    /*
+     *struct v4l2_queryctrl ctrl;
+    int value;
+    struct v4l2_querymenu *menuitems;
+        In the case the control a V4L2 ctrl this variable will specify
+        that the control is a V4L2_CTRL_CLASS_USER control or not.
+        For non V4L2 control it is not acceptable, leave it 0.
+
+    int class_id;
+    int group;*/
+    /*
+       Used in the VIDIOC_QUERYCTRL ioctl for querying controls *
+            struct v4l2_queryctrl {
+                __u32		     id;
+                __u32		     type;
+                __u8		     name[32];
+                __s32		     minimum;
+                __s32		     maximum;
+                __s32		     step;
+                __s32		     default_value;
+                __u32                flags;
+                __u32		     reserved[2];
+            };
+     */
+    pglobal->in[id].in_parameters[0].ctrl.id = 120;
+    pglobal->in[id].in_parameters[0].ctrl.type = V4L2_CTRL_TYPE_INTEGER;
+    sprintf((char*)pglobal->in[id].in_parameters[0].ctrl.name, "Foo integer control");
+    pglobal->in[id].in_parameters[0].value = 100;
+    pglobal->in[id].in_parameters[0].ctrl.minimum = 0;
+    pglobal->in[id].in_parameters[0].ctrl.maximum = 512;
+    pglobal->in[id].in_parameters[0].ctrl.step = 1;
+    pglobal->in[id].in_parameters[0].ctrl.default_value = 12;
+
+    // add pan and tilt
+    pglobal->in[id].in_parameters[1].ctrl.id = V4L2_CID_PAN_RELATIVE;
+    pglobal->in[id].in_parameters[1].ctrl.type = V4L2_CTRL_TYPE_INTEGER;
+    sprintf((char*)pglobal->in[id].in_parameters[1].ctrl.name, "Pan test Ctrl");
+    pglobal->in[id].in_parameters[1].value = 0;
+    pglobal->in[id].in_parameters[1].group = 1;
+    pglobal->in[id].in_parameters[1].ctrl.minimum = 0;
+    pglobal->in[id].in_parameters[1].ctrl.maximum = 1024;
+    pglobal->in[id].in_parameters[1].ctrl.step = 1;
+    pglobal->in[id].in_parameters[1].ctrl.default_value = 0;
+
+    pglobal->in[id].in_parameters[2].ctrl.id = V4L2_CID_TILT_RELATIVE;
+    pglobal->in[id].in_parameters[2].ctrl.type = V4L2_CTRL_TYPE_INTEGER;
+    sprintf((char*)pglobal->in[id].in_parameters[2].ctrl.name, "Tilt test Ctrl");
+    pglobal->in[id].in_parameters[2].value = 0;
+    pglobal->in[id].in_parameters[2].group = 1;
+    pglobal->in[id].in_parameters[2].ctrl.minimum = 0;
+    pglobal->in[id].in_parameters[2].ctrl.maximum = 1024;
+    pglobal->in[id].in_parameters[2].ctrl.step = 1;
+    pglobal->in[id].in_parameters[2].ctrl.default_value = 0;
     return 0;
 }
 
@@ -276,6 +335,19 @@ void worker_cleanup(void *arg)
     if(pglobal->in[plugin_number].buf != NULL) free(pglobal->in[plugin_number].buf);
 }
 
-
+/******************************************************************************
+Description.: process commands, allows to set v4l2 controls
+Input Value.: * control specifies the selected v4l2 control's id
+                see struct v4l2_queryctr in the videodev2.h
+              * value is used for control that make use of a parameter.
+Return Value: depends in the command, for most cases 0 means no errors and
+              -1 signals an error. This is just rule of thumb, not more!
+******************************************************************************/
+int input_cmd(int plugin_number, unsigned int control_id, unsigned int group, int value, char *value_string)
+{
+    if (control_id < 3)
+        pglobal->in[plugin_number].in_parameters[control_id].value = value;
+    return 0;
+}
 
 

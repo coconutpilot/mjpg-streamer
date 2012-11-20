@@ -91,6 +91,8 @@ int output_init(output_parameter *param, int id)
     nocommands = 0;
 
     param->argv[0] = OUTPUT_PLUGIN_NAME;
+    param->global->out[id].name = malloc((strlen(OUTPUT_PLUGIN_NAME) + 1) * sizeof(char));
+    sprintf(param->global->out[id].name, OUTPUT_PLUGIN_NAME);
 
     /* show all parameters for DBG purposes */
     for(i = 0; i < param->argc; i++) {
@@ -179,9 +181,6 @@ int output_init(output_parameter *param, int id)
     OPRINT("HTTP TCP port.....: %d\n", ntohs(port));
     OPRINT("username:password.: %s\n", (credentials == NULL) ? "disabled" : credentials);
     OPRINT("commands..........: %s\n", (nocommands) ? "disabled" : "enabled");
-
-    param->global->out[id].name = malloc((strlen(OUTPUT_PLUGIN_NAME) + 1) * sizeof(char));
-    sprintf(param->global->out[id].name, OUTPUT_PLUGIN_NAME);
 
     return 0;
 }
