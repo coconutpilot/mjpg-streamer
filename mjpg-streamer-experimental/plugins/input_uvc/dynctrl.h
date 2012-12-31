@@ -24,6 +24,13 @@
 #include <linux/uvcvideo.h>
 #include "dynctrl-logitech.h"
 
+#define ONE_DEGREE (64);
+#define MAX_PAN  (70*64)
+#define MIN_PAN  (-70*64)
+#define MAX_TILT (30*64)
+#define MIN_TILT (-30*64)
+#define MIN_RES  (64*5)
+
 #include "v4l2uvc.h"
 
 int initDynCtrls(int fd);

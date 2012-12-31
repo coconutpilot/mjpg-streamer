@@ -205,10 +205,13 @@ int initDynCtrls(int fd)
     /* after adding the controls, add the mapping now */
     for(i = 0; i < LENGTH_OF_XU_MAP; i++) {
         if((err = xioctl(fd, UVCIOC_CTRL_MAP, &xu_mappings[i])) < 0) {
-            if(errno == EEXIST)
+#ifdef DEBUG
+            if(errno == EEXIST) {
                 DBG("Mapping exists\n");
-            else if (errno != 0)
+            } else if (errno != 0) {
                 DBG("UVCIOC_CTRL_MAP - Error at %s: %s (%d)\n", xu_mappings[i].name, strerror(errno), errno);
+            }
+#endif
         }
     }
     return 0;

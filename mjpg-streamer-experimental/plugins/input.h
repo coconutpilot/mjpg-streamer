@@ -35,6 +35,43 @@ struct _input_parameter {
     struct _globals *global;
 };
 
+
+/* commands which can be send to the input plugin */
+typedef enum _in_cmd_type in_cmd_type;
+enum _in_cmd_type {
+  IN_CMD_UNKNOWN = 0,
+  IN_CMD_HELLO,
+  IN_CMD_RESET,
+  IN_CMD_RESET_PAN_TILT,
+  IN_CMD_RESET_PAN_TILT_NO_MUTEX,
+  IN_CMD_PAN_SET,
+  IN_CMD_PAN_PLUS,
+  IN_CMD_PAN_MINUS,
+  IN_CMD_TILT_SET,
+  IN_CMD_TILT_PLUS,
+  IN_CMD_TILT_MINUS,
+  IN_CMD_SATURATION_PLUS,
+  IN_CMD_SATURATION_MINUS,
+  IN_CMD_CONTRAST_PLUS,
+  IN_CMD_CONTRAST_MINUS,
+  IN_CMD_BRIGHTNESS_PLUS,
+  IN_CMD_BRIGHTNESS_MINUS,
+  IN_CMD_GAIN_PLUS,
+  IN_CMD_GAIN_MINUS,
+  IN_CMD_FOCUS_PLUS,
+  IN_CMD_FOCUS_MINUS,
+  IN_CMD_FOCUS_SET,
+  IN_CMD_LED_ON,
+  IN_CMD_LED_OFF,
+  IN_CMD_LED_AUTO,
+  IN_CMD_LED_BLINK,
+  IN_CMD_EXPOSURE_MANUAL,
+  IN_CMD_EXPOSURE_AUTO,
+  IN_CMD_EXPOSURE_SHUTTER_PRIO,
+  IN_CMD_EXPOSURE_APERTURE_PRIO
+};
+
+
 typedef struct _input_resolution input_resolution;
 struct _input_resolution {
     unsigned int width;
@@ -84,4 +121,5 @@ struct _input {
     int (*stop)(int);
     int (*run)(int);
     int (*cmd)(int plugin, unsigned int control_id, unsigned int group, int value, char *value_str);
+    int (*cmd_old)(in_cmd_type, int id, int value);
 };

@@ -704,6 +704,97 @@ int v4l2SetControl(struct vdIn *vd, int control_id, int value, int plugin_number
     }
 }
 
+int v4l2UpControl(struct vdIn *vd, int control) {
+  struct v4l2_control control_s;
+  struct v4l2_queryctrl queryctrl;
+  int min, max, current, step, val_def;
+  int err;
+
+  if (isv4l2Control(vd, control, &queryctrl) < 0)
+    return -1;
+
+  min = queryctrl.minimum;
+  max = queryctrl.maximum;
+  step = queryctrl.step;
+  val_def = queryctrl.default_value;
+  if ( (current = v4l2GetControl(vd, control)) == -1 )
+    return -1;
+
+  current += step;
+
+  //fprintf(stderr, "max %d, min %d, step %d, default %d ,current %d \n",max,min,step,val_def,current);
+  if (current <= max) {
+    control_s.id = control;
+    control_s.value = current;
+    if ((err = ioctl(vd->fd, VIDIOC_S_CTRL, &control_s)) < 0) {
+      return -1;
+    }
+    //fprintf(stderr, "Control name:%s set to value:%d\n", queryctrl.name, control_s.value);
+  } else {
+    //fprintf(stderr, "Control name:%s already has max value:%d \n", queryctrl.name, max);
+    return -1;
+  }
+
+  return 0;
+}
+
+int v4l2DownControl(struct vdIn *vd, int control) {
+  struct v4l2_control control_s;
+  struct v4l2_queryctrl queryctrl;
+  int min, max, current, step, val_def;
+  int err;
+
+  if (isv4l2Control(vd, control, &queryctrl) < 0)
+    return -1;
+
+  min = queryctrl.minimum;
+  max = queryctrl.maximum;
+  step = queryctrl.step;
+  val_def = queryctrl.default_value;
+  if ( (current = v4l2GetControl(vd, control)) == -1 )
+    return -1;
+
+  current -= step;
+  //fprintf(stderr, "max %d, min %d, step %d, default %d ,current %d \n",max,min,step,val_def,current);
+
+  if (current >= min) {
+    control_s.id = control;
+    control_s.value = current;
+    if ((err = ioctl(vd->fd, VIDIOC_S_CTRL, &control_s)) < 0) {
+      return -1;
+    }
+    //fprintf(stderr, "Control name:%s set to value:%d\n", queryctrl.name, control_s.value);
+  }
+  else {
+    return -1;
+    //fprintf(stderr, "Control name:%s already has min value:%d \n", queryctrl.name, min);
+  }
+
+  return 0;
+}
+
+int v4l2ToggleControl(struct vdIn *vd, int control) {
+  struct v4l2_control control_s;
+  struct v4l2_queryctrl queryctrl;
+  int current;
+  int err;
+
+  if (isv4l2Control(vd, control, &queryctrl) != 1)
+    return -1;
+
+  if ( (current = v4l2GetControl(vd, control)) == -1 )
+    return -1;
+
+  control_s.id = control;
+  control_s.value = !current;
+
+  if ((err = ioctl(vd->fd, VIDIOC_S_CTRL, &control_s)) < 0) {
+    return -1;
+  }
+
+  return 0;
+}
+
 int v4l2ResetControl(struct vdIn *vd, int control)
 {
     struct v4l2_control control_s;

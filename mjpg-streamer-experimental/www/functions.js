@@ -107,12 +107,14 @@ function showControls(visible)
 	if (visible) {
 		fillTabs();
 	} else {
-		$("#ul_tabs").children().remove();
+		$("#tabs").children().remove();
+		$("#tabs").removeClass();
+		$("#tabs").append('<ul id="ul_tabs"></ul>');
 	}
 }
 
 function setControl(dest, plugin, id, group, value) {
-	$.get('/?action=command&dest='+dest+
+	$.get('/?action=command_ng&dest='+dest+
 		'&plugin=' +	plugin+
 		'&id='+ 		id + 
 		'&group='+ 		group + 
@@ -131,7 +133,7 @@ function setControl_string(dest, plugin, id, group, value) {
 	alert("The input string has to be least"+minlength+" characters!");
 	return;
 	}
-	$.get('/?action=command&dest=' + dest +
+	$.get('/?action=command_ng&dest=' + dest +
 		'&plugin=' + plugin+
 		'&id=' + id + 
 		'&group=' + group + 
@@ -142,7 +144,7 @@ function setControl_string(dest, plugin, id, group, value) {
 }
 
 function setResolution(plugin, controlId, group, value) {
-	$.get('/?action=command&dest=0' + // resolution command always goes to the input plugin
+	$.get('/?action=command_ng&dest=0' + // resolution command always goes to the input plugin
 		'&plugin=' + plugin+
 		'&id'+ controlId + 
 		'&group=1'+// IN_CMD_RESOLUTION == 1,		

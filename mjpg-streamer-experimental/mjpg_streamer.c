@@ -92,7 +92,7 @@ Return Value: -
 ******************************************************************************/
 void signal_handler(int sig)
 {
-    int i, j;
+    int i, j, skip;
 
     /* signal "stop" to threads */
     LOG("setting signal to stop\n");
@@ -127,7 +127,7 @@ void signal_handler(int sig)
     }
 
     for(i = 0; i < global.outcnt; i++) {
-        int j, skip = 0;
+        skip = 0;
         DBG("about to decrement usage counter for handle of %s, id #%02d, handle: %p\n", \
             global.out[i].plugin, global.out[i].param.id, global.out[i].handle);
 
@@ -358,6 +358,7 @@ int main(int argc, char *argv[])
         }
         /* try to find optional command */
         global.in[i].cmd = dlsym(global.in[i].handle, "input_cmd");
+        global.in[i].cmd_old = dlsym(global.in[i].handle, "input_cmd_old");
 
         global.in[i].param.parameters = strchr(input[i], ' ');
 

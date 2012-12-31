@@ -47,6 +47,42 @@
 
 #include "httpd.h"
 
+/*
+ * mapping between command string and command type
+ * it is used to find the command for a certain string
+ */
+static const struct {
+  const char *string;
+  const in_cmd_type cmd;
+} in_cmd_mapping[] = {
+  { "pan_set", IN_CMD_PAN_SET },
+  { "pan_plus", IN_CMD_PAN_PLUS },
+  { "pan_minus", IN_CMD_PAN_MINUS },
+  { "tilt_set", IN_CMD_TILT_SET },
+  { "tilt_plus", IN_CMD_TILT_PLUS },
+  { "tilt_minus", IN_CMD_TILT_MINUS },
+  { "saturation_plus", IN_CMD_SATURATION_PLUS },
+  { "saturation_minus", IN_CMD_SATURATION_MINUS },
+  { "contrast_plus", IN_CMD_CONTRAST_PLUS },
+  { "contrast_minus", IN_CMD_CONTRAST_MINUS },
+  { "brightness_plus", IN_CMD_BRIGHTNESS_PLUS },
+  { "brightness_minus", IN_CMD_BRIGHTNESS_MINUS },
+  { "gain_plus", IN_CMD_GAIN_PLUS },
+  { "gain_minus", IN_CMD_GAIN_MINUS },
+  { "focus_plus", IN_CMD_FOCUS_PLUS },
+  { "focus_minus", IN_CMD_FOCUS_MINUS },
+  { "focus_set", IN_CMD_FOCUS_SET },
+  { "led_on", IN_CMD_LED_ON },
+  { "led_off", IN_CMD_LED_OFF },
+  { "led_auto", IN_CMD_LED_AUTO },
+  { "led_blink", IN_CMD_LED_BLINK },
+  { "exposure_manual", IN_CMD_EXPOSURE_MANUAL },
+  { "exposure_auto", IN_CMD_EXPOSURE_AUTO },
+  { "exposure_shutter_prio", IN_CMD_EXPOSURE_SHUTTER_PRIO },
+  { "exposure_aperture_prio", IN_CMD_EXPOSURE_APERTURE_PRIO }
+};
+
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,32)
 #define V4L2_CTRL_TYPE_STRING_SUPPORTED
 #endif
@@ -853,7 +889,7 @@ Input Value.: * fd.......: filedescriptor to send HTTP response to.
               * id.......: specifies which server-context to choose.
 Return Value: -
 ******************************************************************************/
-void command(int id, int fd, char *parameter)
+void command_ng(int id, int fd, char *parameter)
 {
     char buffer[BUFFER_SIZE] = {0};
     char *command = NULL, *svalue = NULL, *value, *command_id_string;
@@ -869,7 +905,7 @@ void command(int id, int fd, char *parameter)
     }
 
     /* command format:
-        ?control&dest=0plugin=0&id=0&group=0&value=0
+        ?command_ng&dest=0plugin=0&id=0&group=0&value=0
         where:
         dest: specifies the command destination (input, output, program itself) 0-1-2
         plugin specifies the plugin id  (not acceptable at the commands sent to the program itself)
@@ -1014,6 +1050,119 @@ void command(int id, int fd, char *parameter)
 }
 
 /******************************************************************************
+Description.: Perform a command specified by parameter. Send response to fd.
+Input Value.: * fd.......: filedescriptor to send HTTP response to.
+              * parameter: contains the command and value as string.
+              * id.......: specifies which server-context to choose.
+Return Value: -
+******************************************************************************/
+void command(int id, int fd, char *parameter) {
+  char buffer[BUFFER_SIZE] = {0}, *command=NULL, *svalue=NULL, *value, *sid;
+  int i=0, res=0, ivalue=0, len=0, iid=0;
+
+  DBG("parameter is: %s\n", parameter);
+
+  /* sanity check of parameter-string */
+  if ( parameter == NULL || strlen(parameter) >= 255 || strlen(parameter) == 0 ) {
+    DBG("parameter string looks bad\n");
+    send_error(fd, 400, "Parameter-string of command does not look valid.");
+    return;
+  }
+
+  /* search for required variable "command" */
+  if ( (command = strstr(parameter, "command=")) == NULL ) {
+    DBG("no command specified\n");
+    send_error(fd, 400, "no GET variable \"command=...\" found, it is required to specify which command to execute");
+    return;
+  }
+
+  /* allocate and copy command string */
+  command += strlen("command=");
+  len = strspn(command, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_1234567890");
+  if ( (command = strndup(command, len)) == NULL ) {
+    send_error(fd, 500, "could not allocate memory");
+    LOG("could not allocate memory\n");
+    return;
+  }
+  DBG("command string: %s\n", command);
+
+  /* find and convert optional parameter "value" */
+  if ( (value = strstr(parameter, "value=")) != NULL ) {
+    value += strlen("value=");
+    len = strspn(value, "-1234567890");
+    if ( (svalue = strndup(value, len)) == NULL ) {
+      if (command != NULL) free(command);
+      send_error(fd, 500, "could not allocate memory");
+      LOG("could not allocate memory\n");
+      return;
+    }
+    ivalue = MAX(MIN(strtol(svalue, NULL, 10), 999), -999);
+    DBG("converted value form string %s to integer %d\n", svalue, ivalue);
+  }
+
+  /* find and convert optional parameter "id" */
+  if ( (sid = strstr(parameter, "id=")) != NULL ) {
+    sid += strlen("id=");
+    len = strspn(sid, "-1234567890");
+    if ( (svalue = strndup(sid, len)) == NULL ) {
+      if (command != NULL) free(command);
+      send_error(fd, 500, "could not allocate memory");
+      LOG("could not allocate memory\n");
+      return;
+    }
+    iid = MAX(MIN(strtol(svalue, NULL, 10), 999), -999);
+    DBG("converted value form string %s to integer %d\n", svalue, iid);
+  }
+
+  /*
+   * determine command, try the input command-mappings first
+   * this is the interface to send commands to the input plugin.
+   * if the input-plugin does not implement the optional command
+   * function, a short error is reported to the HTTP-client.
+   */
+  for ( i=0; i < LENGTH_OF(in_cmd_mapping); i++ ) {
+    if ( strcmp(in_cmd_mapping[i].string, command) == 0 ) {
+
+      if ( pglobal->in[0].cmd_old == NULL )
+        continue;
+
+      res = pglobal->in[0].cmd_old(in_cmd_mapping[i].cmd, iid, ivalue);
+      break;
+    }
+  }
+
+  /* check if the command is for the output plugin itself */
+  /*for ( i=0; i < LENGTH_OF(out_cmd_mapping); i++ ) {
+    if ( strcmp(out_cmd_mapping[i].string, command) == 0 ) {
+      res = output_cmd(id, out_cmd_mapping[i].cmd, ivalue);
+      break;
+    }
+  }*/
+
+  /* check if the command is for the mjpg-streamer application itself */
+  /*for ( i=0; i < LENGTH_OF(control_cmd_mapping); i++ ) {
+    if ( strcmp(control_cmd_mapping[i].string, command) == 0 ) {
+      res = pglobal->control(control_cmd_mapping[i].cmd, value);
+      break;
+    }
+  }*/
+
+  /* Send HTTP-response */
+  sprintf(buffer, "HTTP/1.0 200 OK\r\n" \
+                  "Content-type: text/plain\r\n" \
+                  STD_HEADER \
+                  "\r\n" \
+                  "%s: %d", command, res);
+
+  if( write(fd, buffer, strlen(buffer)) < 0 ) {
+    DBG("write failed, done anyway\n");
+  }
+
+  if (command != NULL) free(command);
+  if (svalue != NULL) free(svalue);
+}
+
+/******************************************************************************
 Description.: Serve a connected TCP-client. This thread function is called
               for each connect of a HTTP client like a webbrowser. It determines
               if it is a valid HTTP request and dispatches between the different
@@ -1146,18 +1295,18 @@ void *client_thread(void *arg)
     } else if(strstr(buffer, "GET /clients.json") != NULL) {
         req.type = A_CLIENTS_JSON;
     #endif
-    } else if(strstr(buffer, "GET /?action=command") != NULL) {
+    } else if(strstr(buffer, "GET /?action=command_ng") != NULL) {
         int len;
-        req.type = A_COMMAND;
+        req.type = A_COMMAND_NG;
 
         /* advance by the length of known string */
-        if((pb = strstr(buffer, "GET /?action=command")) == NULL) {
+        if((pb = strstr(buffer, "GET /?action=command_ng")) == NULL) {
             DBG("HTTP request seems to be malformed\n");
             send_error(lcfd.fd, 400, "Malformed HTTP request");
             close(lcfd.fd);
             return NULL;
         }
-        pb += strlen("GET /?action=command"); // a pb points to thestring after the first & after command
+        pb += strlen("GET /?action=command_ng"); // a pb points to thestring after the first & after command
 
         /* only accept certain characters */
         len = MIN(MAX(strspn(pb, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-=&1234567890%./"), 0), 100);
@@ -1175,6 +1324,37 @@ void *client_thread(void *arg)
             LOG("could not properly unescape command parameter string\n");
             close(lcfd.fd);
             return NULL;
+        }
+
+        DBG("command parameter (len: %d): \"%s\"\n", len, req.parameter);
+    } else if(strstr(buffer, "GET /?action=command") != NULL) { // to be able to have backward compatibility with revisions < 94
+        int len;
+        req.type = A_COMMAND;
+
+        /* advance by the length of known string */
+        if ( (pb = strstr(buffer, "GET /?action=command")) == NULL ) {
+          DBG("HTTP request seems to be malformed\n");
+          send_error(lcfd.fd, 400, "Malformed HTTP request");
+          close(lcfd.fd);
+          return NULL;
+        }
+        pb += strlen("GET /?action=command");
+
+        /* only accept certain characters */
+        len = MIN(MAX(strspn(pb, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-=&1234567890%./"), 0), 100);
+        req.parameter = malloc(len+1);
+        if ( req.parameter == NULL ) {
+          exit(EXIT_FAILURE);
+        }
+        memset(req.parameter, 0, len+1);
+        strncpy(req.parameter, pb, len);
+
+        if ( unescape(req.parameter) == -1 ) {
+          free(req.parameter);
+          send_error(lcfd.fd, 500, "could not properly unescape command parameter string");
+          LOG("could not properly unescape command parameter string\n");
+          close(lcfd.fd);
+          return NULL;
         }
 
         DBG("command parameter (len: %d): \"%s\"\n", len, req.parameter);
@@ -1311,6 +1491,13 @@ void *client_thread(void *arg)
         send_stream_wxp(&lcfd, input_number);
         break;
     #endif
+    case A_COMMAND_NG:
+        if(lcfd.pc->conf.nocommands) {
+            send_error(lcfd.fd, 501, "this server is configured to not accept commands");
+            break;
+        }
+        command_ng(lcfd.pc->id, lcfd.fd, req.parameter);
+        break;
     case A_COMMAND:
         if(lcfd.pc->conf.nocommands) {
             send_error(lcfd.fd, 501, "this server is configured to not accept commands");

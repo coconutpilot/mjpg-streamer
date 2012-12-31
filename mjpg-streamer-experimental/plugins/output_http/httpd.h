@@ -87,6 +87,7 @@ typedef enum {
     A_SNAPSHOT_WXP,
     A_STREAM,
     A_STREAM_WXP,
+    A_COMMAND_NG,
     A_COMMAND,
     A_FILE,
     A_CGI,
