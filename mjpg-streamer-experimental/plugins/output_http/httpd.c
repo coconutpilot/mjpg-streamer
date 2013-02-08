@@ -1805,18 +1805,7 @@ void send_input_JSON(int fd, int input_number)
                 if(pglobal->in[input_number].in_parameters[i].menuitems != NULL) {
                     int j, k = 1;
                     for(j = pglobal->in[input_number].in_parameters[i].ctrl.minimum; j <= pglobal->in[input_number].in_parameters[i].ctrl.maximum; j++) {
-                        char *tempName = NULL; // temporary storage for name sanity checking
-
-                        int prevSize = 0;
-                        int itemLength = strlen((char*)&pglobal->in[input_number].in_parameters[i].menuitems[j].name);
-                        tempName = (char*)calloc(itemLength + 1, sizeof(char));  // allocate space for the sanity checking
-                        if (tempName == NULL) {
-                            DBG("Realloc/calloc failed: %s\n", strerror(errno));
-                            return;
-                        }
-
-                        check_JSON_string((char*)&pglobal->in[input_number].in_parameters[i].menuitems[j].name, tempName); // sanity check the string after non printable characters
-
+                        unsigned int itemLength = strlen((char*)&pglobal->in[input_number].in_parameters[i].menuitems[j].name);
                         itemLength += strlen("\"\": \"\"");
 
                         if (menuString == NULL) {
@@ -1829,15 +1818,14 @@ void send_input_JSON(int fd, int input_number)
                             DBG("Realloc/calloc failed: %s\n", strerror(errno));
                             return;
                         }
-                        prevSize = strlen(menuString);
+                        itemLength = strlen(menuString);
 
                         if(j != pglobal->in[input_number].in_parameters[i].ctrl.maximum) {
-                            sprintf(menuString + prevSize, "\"%d\": \"%s\", ", j , tempName);
+                            sprintf(menuString + itemLength, "\"%d\": \"%s\", ", j , (char*)&pglobal->in[input_number].in_parameters[i].menuitems[j].name);
                         } else {
-                            sprintf(menuString + prevSize, "\"%d\": \"%s\"", j , tempName);
+                            sprintf(menuString + itemLength, "\"%d\": \"%s\"", j , (char*)&pglobal->in[input_number].in_parameters[i].menuitems[j].name);
                         }
                         k++;
-                        free(tempName);
                     }
                 }
             }
@@ -1991,6 +1979,7 @@ void send_input_JSON(int fd, int input_number)
             "\n]\n"
             "}\n");
     i = strlen(buffer);
+    check_JSON_string(buffer);
 
     /* first transmit HTTP-header, afterwards transmit content of file */
     if(write(fd, buffer, i) < 0) {
@@ -2063,6 +2052,7 @@ void send_program_JSON(int fd)
             "]\n"*/
             "]}\n");
     i = strlen(buffer);
+    check_JSON_string(buffer);
 
     /* first transmit HTTP-header, afterwards transmit content of file */
     if(write(fd, buffer, i) < 0) {
@@ -2076,14 +2066,12 @@ Description.:   checks the source string for non printable characters and replac
 Input Value.:   source
 Return Value:   destination
 ******************************************************************************/
-void check_JSON_string(char *source, char *destination)
+void check_JSON_string(char *string)
 {
     int i = 0;
-    while (source[i] != '\0') {
-        if (isprint(source[i])) {
-            destination[i] = source [i];
-        } else {
-            destination[i] = ' ';
+    while (string[i] != '\0') {
+        if (!isprint(string[i])) {
+            string[i] = ' ';
         }
         i++;
     }
@@ -2192,7 +2180,7 @@ void send_output_JSON(int fd, int input_number)
     sprintf(buffer + strlen(buffer),
             "}\n");
     i = strlen(buffer);
-
+    check_JSON_string(buffer);
     /* first transmit HTTP-header, afterwards transmit content of file */
     if(write(fd, buffer, i) < 0) {
         DBG("unable to serve the control JSON file\n");
