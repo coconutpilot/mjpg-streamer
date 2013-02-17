@@ -1785,7 +1785,7 @@ Return Value: -
 void send_input_JSON(int fd, int input_number)
 {
     char buffer[BUFFER_SIZE*16] = {0}; // FIXME do reallocation if the buffer size is small
-    int i;
+    int i, headerLength;
     sprintf(buffer, "HTTP/1.0 200 OK\r\n" \
             "Content-type: %s\r\n" \
             STD_HEADER \
@@ -1793,8 +1793,8 @@ void send_input_JSON(int fd, int input_number)
 
     DBG("Serving the input plugin %d descriptor JSON file\n", input_number);
 
-
-    sprintf(buffer + strlen(buffer),
+    headerLength = strlen(buffer);
+    sprintf(buffer + headerLength,
             "{\n"
             "\"controls\": [\n");
     if(pglobal->in[input_number].in_parameters != NULL) {
@@ -1979,7 +1979,7 @@ void send_input_JSON(int fd, int input_number)
             "\n]\n"
             "}\n");
     i = strlen(buffer);
-    check_JSON_string(buffer);
+    check_JSON_string(buffer, headerLength, i);
 
     /* first transmit HTTP-header, afterwards transmit content of file */
     if(write(fd, buffer, i) < 0) {
@@ -1991,7 +1991,7 @@ void send_input_JSON(int fd, int input_number)
 void send_program_JSON(int fd)
 {
     char buffer[BUFFER_SIZE*16] = {0}; // FIXME do reallocation if the buffer size is small
-    int i, k;
+    int i, k, headerLength = 0;
     sprintf(buffer, "HTTP/1.0 200 OK\r\n" \
             "Content-type: %s\r\n" \
             STD_HEADER \
@@ -1999,8 +1999,8 @@ void send_program_JSON(int fd)
 
     DBG("Serving the program descriptor JSON file\n");
 
-
-    sprintf(buffer + strlen(buffer),
+    headerLength = strlen(buffer);
+    sprintf(buffer + headerLength,
             "{\n"
             /*"\"program\": [\n"
             "{\n"*/
@@ -2052,28 +2052,11 @@ void send_program_JSON(int fd)
             "]\n"*/
             "]}\n");
     i = strlen(buffer);
-    check_JSON_string(buffer);
+    check_JSON_string(buffer, headerLength, i);
 
     /* first transmit HTTP-header, afterwards transmit content of file */
     if(write(fd, buffer, i) < 0) {
         DBG("unable to serve the program JSON file\n");
-    }
-}
-
-/******************************************************************************
-Description.:   checks the source string for non printable characters and replaces them with space
-                the two arguments should be the same size allocated memory areas
-Input Value.:   source
-Return Value:   destination
-******************************************************************************/
-void check_JSON_string(char *string)
-{
-    int i = 0;
-    while (string[i] != '\0') {
-        if (!isprint(string[i])) {
-            string[i] = ' ';
-        }
-        i++;
     }
 }
 
@@ -2086,7 +2069,7 @@ Return Value: -
 void send_output_JSON(int fd, int input_number)
 {
     char buffer[BUFFER_SIZE*16] = {0}; // FIXME do reallocation if the buffer size is small
-    int i;
+    int i, headerLength;
     sprintf(buffer, "HTTP/1.0 200 OK\r\n" \
             "Content-type: %s\r\n" \
             STD_HEADER \
@@ -2094,7 +2077,9 @@ void send_output_JSON(int fd, int input_number)
 
     DBG("Serving the output plugin %d descriptor JSON file\n", input_number);
 
-    sprintf(buffer + strlen(buffer),
+    headerLength =  strlen(buffer);
+
+    sprintf(buffer + headerLength,
             "{\n"
             "\"controls\": [\n");
     if(pglobal->out[input_number].out_parameters != NULL) {
@@ -2180,7 +2165,7 @@ void send_output_JSON(int fd, int input_number)
     sprintf(buffer + strlen(buffer),
             "}\n");
     i = strlen(buffer);
-    check_JSON_string(buffer);
+    check_JSON_string(buffer, headerLength, i);
     /* first transmit HTTP-header, afterwards transmit content of file */
     if(write(fd, buffer, i) < 0) {
         DBG("unable to serve the control JSON file\n");
@@ -2191,7 +2176,7 @@ void send_output_JSON(int fd, int input_number)
 void send_clients_JSON(int fd)
 {
     char buffer[BUFFER_SIZE*16] = {0}; // FIXME do reallocation if the buffer size is small
-    unsigned long i = 0 ;
+    unsigned long i = 0, headerLength;
     sprintf(buffer, "HTTP/1.0 200 OK\r\n" \
             "Content-type: %s\r\n" \
             STD_HEADER \
@@ -2199,7 +2184,8 @@ void send_clients_JSON(int fd)
 
     DBG("Serving the clients JSON file\n");
 
-    sprintf(buffer + strlen(buffer),
+    headerLength = strlen(buffer);
+    sprintf(buffer + headerLength,
             "{\n"
             "\"clients\": [\n");
 
@@ -2231,3 +2217,19 @@ void send_clients_JSON(int fd)
 }
 #endif
 
+
+/******************************************************************************
+Description.:   checks the source string for non printable characters and replaces them with space
+                the two arguments should be the same size allocated memory areas
+Input Value.:   source
+Return Value:   destination
+******************************************************************************/
+void check_JSON_string(char *string, unsigned int offset, unsigned int size)
+{
+    int i;
+    for (i = offset; i<size; i++) {
+        if (!isprint(string[i]) && string[i] != '\n') {
+            string[i] = ' ';
+        }
+    }
+}
