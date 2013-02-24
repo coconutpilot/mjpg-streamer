@@ -2228,7 +2228,7 @@ void check_JSON_string(char *string, unsigned int offset, unsigned int size)
 {
     int i;
     for (i = offset; i<size; i++) {
-        if (!isprint(string[i]) && string[i] != '\n') {
+        if ((!isprint(string[i]) || string[i] == '\\') && string[i] != '\n' ) {
             string[i] = ' ';
         }
     }

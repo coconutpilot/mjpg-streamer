@@ -176,7 +176,7 @@ void send_error(int fd, int which, char *message);
 void send_output_JSON(int fd, int plugin_number);
 void send_input_JSON(int fd, int plugin_number);
 void send_program_JSON(int fd);
-void check_JSON_string(char *string);
+void check_JSON_string(char *string, unsigned int offset, unsigned int size);
 
 #ifdef MANAGMENT
 client_info *add_client(char *address);
