@@ -20,7 +20,7 @@ LFLAGS += -lv4l2
 CFLAGS += -DUSE_LIBV4L2
 endif
 
-NO_LIBJPEG=true
+#NO_LIBJPEG=true
 
 ifndef NO_LIBJPEG
 LFLAGS += -ljpeg
