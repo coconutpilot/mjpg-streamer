@@ -22,7 +22,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA    #
 #                                                                              #
 *******************************************************************************/
-
+#ifndef NO_LIBJPEG
 #include <stdio.h>
 #include <jpeglib.h>
 #include <stdlib.h>
@@ -233,3 +233,4 @@ int compress_image_to_jpeg(struct vdIn *vd, unsigned char *buffer, int size, int
 
     return (written);
 }
+#endif

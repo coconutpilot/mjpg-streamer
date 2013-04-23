@@ -28,6 +28,7 @@
 #include <stdio.h>
 
 #include <linux/videodev2.h>
+#include <linux/uvcvideo.h>
 
 #include "../../utils.h"
 #include "dynctrl.h"
@@ -82,6 +83,22 @@ static struct uvc_xu_control_info xu_ctrls[] = {
 
 };
 #endif
+
+struct uvc_menu_info Logitech_C510_LED_menu[] = {
+    {
+        .value = 0,
+        .name = "Off"
+    },
+
+    {
+        .value = 1,
+        .name = "On",
+    },
+    {
+        .value = 3,
+        .name = "Auto",
+    },
+};
 
 /* some Logitech webcams have pan/tilt/focus controls */
 #define LENGTH_OF_XU_MAP (10)
@@ -178,7 +195,18 @@ struct uvc_xu_control_mapping xu_mappings[] = {
         .v4l2_type = V4L2_CTRL_TYPE_INTEGER,
         .data_type = UVC_CTRL_DATA_TYPE_UNSIGNED
     },
-
+    {
+        .id        = V4L2_CID_LED1_MODE,
+        .name      = "LED1 Mode",
+        .entity    = UVC_GUID_LOGITECH_USER_HW_CONTROL_C510,
+        .selector  = XU_HW_CONTROL_LED1_C510,
+        .size      = 2,
+        .offset    = 8,
+        .v4l2_type = V4L2_CTRL_TYPE_MENU,
+        .data_type = UVC_CTRL_DATA_TYPE_UNSIGNED,
+        .menu_count = 3,
+        .menu_info = Logitech_C510_LED_menu
+    },
 };
 
 int initDynCtrls(int fd)
@@ -211,8 +239,29 @@ int initDynCtrls(int fd)
             } else if (errno != 0) {
                 DBG("UVCIOC_CTRL_MAP - Error at %s: %s (%d)\n", xu_mappings[i].name, strerror(errno), errno);
             }
-#endif
+        } else {
+            fprintf(stderr,
+                "uvc_xu_control_mapping = {\n"
+                "	id        = 0x%08x,\n"
+                "	name      = '%s',\n"
+                "	selector  = %u,\n"
+                "	size      = %u,\n"
+                "	offset    = %u,\n"
+                "	v4l2_type = %u,\n"
+                "	data_type = %u\n"
+                "}\n",
+                xu_mappings[i].id,
+                xu_mappings[i].name,
+                xu_mappings[i].selector,
+                xu_mappings[i].size,
+                xu_mappings[i].offset,
+                xu_mappings[i].v4l2_type,
+                xu_mappings[i].data_type
+            );
         }
+#else
+        }
+#endif
     }
     return 0;
 }

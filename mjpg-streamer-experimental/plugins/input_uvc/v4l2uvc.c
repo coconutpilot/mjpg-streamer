@@ -165,7 +165,8 @@ int init_videoIn(struct vdIn *vd, char *device, int width,
                 pglobal->in[id].in_formats[pglobal->in[id].formatCount].supportedResolutions[j-1].width = fsenum.discrete.width;
                 pglobal->in[id].in_formats[pglobal->in[id].formatCount].supportedResolutions[j-1].height = fsenum.discrete.height;
                 if(format == fmtdesc.pixelformat) {
-                    pglobal->in[id].in_formats[pglobal->in[id].formatCount].currentResolution = (j - 1);
+                    if ((fsenum.discrete.width == width) && (fsenum.discrete.height == height))
+                        pglobal->in[id].in_formats[pglobal->in[id].formatCount].currentResolution = (j - 1);
                     DBG("\tSupported size with the current format: %dx%d\n", fsenum.discrete.width, fsenum.discrete.height);
                 } else {
                     DBG("\tSupported size: %dx%d\n", fsenum.discrete.width, fsenum.discrete.height);
@@ -174,6 +175,7 @@ int init_videoIn(struct vdIn *vd, char *device, int width,
                 break;
             }
         }
+        DBG("current resolution: %d\n", pglobal->in[id].in_formats[pglobal->in[id].formatCount].currentResolution);
     }
 
     /* alloc a temp buffer to reconstruct the pict */
@@ -264,7 +266,7 @@ static int init_v4l2(struct vdIn *vd)
     vd->fmt.fmt.pix.field = V4L2_FIELD_ANY;
     ret = xioctl(vd->fd, VIDIOC_S_FMT, &vd->fmt);
     if(ret < 0) {
-        fprintf(stderr, "Unable to set format: %d res: %dx%d\n", vd->formatIn, vd->width, vd->height);
+        fprintf(stderr, "Unable to set format: %d res: %dx%d\n", vd->formatIn, vd->width, vd->height); //FIXME check the format availablility here!
         goto fatal;
     }
 
@@ -435,13 +437,13 @@ static int video_disable(struct vdIn *vd, streaming_state disabledState)
 {
     int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     int ret;
-    DBG("STopping capture\n");
+    DBG("Stopping capture\n");
     ret = xioctl(vd->fd, VIDIOC_STREAMOFF, &type);
     if(ret != 0) {
         perror("Unable to stop capture");
         return ret;
     }
-    DBG("STopping capture done\n");
+    DBG("Stopping capture done\n");
     vd->streamingState = disabledState;
     return 0;
 }
@@ -668,6 +670,7 @@ int v4l2SetControl(struct vdIn *vd, int control_id, int value, int plugin_number
             struct v4l2_ext_controls ext_ctrls = {0};
             struct v4l2_ext_control ext_ctrl = {0};
             ext_ctrl.id = pglobal->in[plugin_number].in_parameters[i].ctrl.id;
+            //ext_ctrl.size = pglobal->in[plugin_number].in_parameters[i].ctrl.ma;
 
             switch(pglobal->in[plugin_number].in_parameters[i].ctrl.type) {
 #ifdef V4L2_CTRL_TYPE_STRING
@@ -676,7 +679,7 @@ int v4l2SetControl(struct vdIn *vd, int control_id, int value, int plugin_number
                     //add the maximum size to value
                     ext_ctrl.size = value;
                     DBG("STRING extended controls are currently broken\n");
-                    //ext_ctrl.string = control->string; // FIXMEE
+                    //ext_ctrl.string = control->string; // FIXME
                     break;
 #endif
                 case V4L2_CTRL_TYPE_INTEGER64:
@@ -687,6 +690,7 @@ int v4l2SetControl(struct vdIn *vd, int control_id, int value, int plugin_number
                     break;
             }
 
+            ext_ctrls.ctrl_class = V4L2_CTRL_CLASS_USER;
             ext_ctrls.count = 1;
             ext_ctrls.controls = &ext_ctrl;
             ret = xioctl(vd->fd, VIDIOC_S_EXT_CTRLS, &ext_ctrls);
@@ -717,6 +721,7 @@ int v4l2UpControl(struct vdIn *vd, int control) {
   max = queryctrl.maximum;
   step = queryctrl.step;
   val_def = queryctrl.default_value;
+
   if ( (current = v4l2GetControl(vd, control)) == -1 )
     return -1;
 
