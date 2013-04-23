@@ -8,6 +8,17 @@
     <!--[if IE 6]>
     <link rel="stylesheet" href="fix.css" type="text/css" />
     <![endif]-->
+    
+	<script type="text/javascript" src="jquery.js"></script>
+	<script type="text/javascript" src="jquery.rotate.js"></script>
+	<script type="text/javascript" src="jquery.ui.core.min.js"></script>    
+	<script type="text/javascript" src="jquery.ui.widget.min.js"></script>    
+	<script type="text/javascript" src="jquery.ui.tabs.min.js"></script>
+	<script type="text/javascript" src="JQuerySpinBtn.js"></script>    
+    <script type="text/javascript" src="functions.js"></script>
+    <script type="text/javascript">
+		setImageSize("staticimage");
+	</script>
   </head>
 
   <body>
@@ -39,7 +50,7 @@
       <h3>Source snippet</h3>
       <p><pre>&lt;img src="/?action=snapshot" /&gt;</pre></p>
 
-      <img src="/?action=snapshot" alt="This is a static snapshot" width="512px" height="384px" />
+      <img id="staticimage" src="/?action=snapshot" alt="This is a static snapshot" width="512px" height="384px" />
 
       <p>&copy; The <a href="http://mjpg-streamer.sf.net">MJPG-streamer team</a> | Design by <a href="http://andreasviklund.com">Andreas Viklund</a></p>
     </div>
