@@ -1959,7 +1959,7 @@ void send_input_JSON(int fd, int input_number)
                     resolutionsString
                    );
 
-            if(pglobal->in[input_number].in_formats[i].currentResolution != -1) {
+            if (pglobal->in[input_number].in_formats[i].currentResolution != -1) {
                 sprintf(buffer + strlen(buffer),
                         ",\n\"currentResolution\": \"%d\"\n",
                         pglobal->in[input_number].in_formats[i].currentResolution
